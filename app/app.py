@@ -84,7 +84,7 @@ def upload():
 
                     aBooking = Booking.createBooking(check_in_date=check_in_date, customer=existing_user, package=existing_package)
                     aBooking.calculate_total_cost()
-            elif datatype == "listOfBooking":
+            elif datatype == "ListOfBooking":
                 print("Entered listOfBooking loop")
                 for item in list(dict_reader):
                     existing_user = User.getUser(email=item['customer'])
