@@ -5,11 +5,16 @@
     {% block mainblock %}
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">{{ message }}</div>
-    {% endfor %}
+    <div class="container-fluid px-4 mb-3">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} text-left w-100">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
     {% endif %}
     {% endwith %}
+
     {% for package in all_packages %}
     <!-- {{ package|pprint }} -->
     <div class="col-xl-4 col-md-6 col-sm-12 p-2">
