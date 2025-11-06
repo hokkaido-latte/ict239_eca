@@ -1,5 +1,5 @@
 from flask_login import login_user, login_required, logout_user, current_user
-from flask import Blueprint, request, redirect, render_template, url_for
+from flask import Blueprint, request, redirect, render_template, url_for, flash
 
 from models.forms import BookForm
 
@@ -37,6 +37,9 @@ def book():
         print(existing_package)
         if (current_user is None) or (existing_package is None):
             print(f"Something is wrong")
+        elif current_user.email == "admin@abc.com":  
+            flash(f"This is a non-admin function. Please log in as a non-admin user to use this funciton", "info")
+            print(f"Admin cannot book package")
         else:
             aBooking = Booking.createBooking(check_in_date, current_user, existing_package) 
             # print('aBooking.check_in_date', aBooking.check_in_date, type(aBooking.check_in_date)) # type is str
