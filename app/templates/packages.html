@@ -15,6 +15,13 @@
     {% endif %}
     {% endwith %}
 
+    <div class="container-fluid px-4 mb-3">
+        <div class="alert alert-info d-flex justify-content-between align-items-center w-100 mb-0">
+            <span>Select 2 or more packages to buy as a bundle to qualify for discount.</span>
+            <a href="" class="btn btn-primary">Purchase bundle</a>
+        </div>
+    </div>
+
     {% for package in all_packages %}
     <!-- {{ package|pprint }} -->
     <div class="col-xl-4 col-md-6 col-sm-12 p-2">
@@ -30,6 +37,7 @@
                 <p class="card-text">{{package.description}}</p>
                 <a href="/viewPackageDetail/{{package.hotel_name}}" class="btn btn-primary">Details</a>
                 <a href="/view?hotel_name='{{package.hotel_name}}'" class="btn btn-primary">Book</a>
+                <input type="checkbox" style="height: 38px; width: 38px; vertical-align: middle; margin-left: 8px; border-radius: 6px; border: 4px solid #007bff">
             </div>
         </div>
     </div>
