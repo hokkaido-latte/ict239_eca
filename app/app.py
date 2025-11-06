@@ -84,6 +84,23 @@ def upload():
 
                     aBooking = Booking.createBooking(check_in_date=check_in_date, customer=existing_user, package=existing_package)
                     aBooking.calculate_total_cost()
+            elif datatype == "listOfBooking":
+                print("Entered listOfBooking loop")
+                for item in list(dict_reader):
+                    existing_user = User.getUser(email=item['customer'])
+                    packages = []
+                    raw = item['hotel_names']
+                    hotel_names = [name.strip().strip("'\"") for name in raw.strip("[]").split(",")]
+                    for name in hotel_names:
+                        pkg = Package.getPackage(hotel_name=name)
+                        if pkg:
+                            packages.append(pkg)
+                    check_in_date=dt.datetime.strptime(item['check_in_date'], "%d/%m/%Y")
+                    for pkg in packages:
+                        aBooking = Booking.createBooking(check_in_date=check_in_date, customer=existing_user, package=pkg)
+                        aBooking.calculate_total_cost()
+                        print(f"Booking made for {pkg.hotel_name} on {check_in_date.strftime('%d/%m/%Y')}")
+                        check_in_date +=dt.timedelta(days=pkg.duration)
                     
         return render_template("upload.html", panel="Upload")
     
