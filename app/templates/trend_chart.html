@@ -8,9 +8,9 @@
             
             <label for="myDropdown">Chart Type:</label>
             <select id="myDropdown" name="selectedOption">
-                <option value="option1">Choose a Type</option>
-                <option value="option2">Amount Incoming</option>
-                <option value="option3">Bookings By Month</option>
+                <option value="default">Choose a Type</option>
+                <option value="amount_incoming">Amount Incoming</option>
+                <option value="bookings_by_month">Bookings By Month</option>
             </select>
         </div>
 <div class="card-body">
@@ -27,4 +27,167 @@
 
 <!--<script src="{{ url_for('static', filename='js/trend_chart.js') }}"></script>-->
 
+<script>
+    // Wait for the DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropdown = document.getElementById('myDropdown');
+        const ctx = document.getElementById('myChart').getContext('2d');
+        let myChart = null;
+
+        dropdown.addEventListener('change', function () {
+            const selectedValue = this.value;
+            if (selectedValue !== 'default') {
+                fetchChartData(selectedValue);
+            } else if (myChart) {
+                myChart.destroy();
+                myChart = null;
+            }
+        });
+
+        function fetchChartData(chartType) {
+            $.ajax({
+                url: "/trend_chart",
+                type: "POST",
+                data: { chart_type: chartType },
+                error: function () {
+                    alert("Error fetching chart data");
+                },
+                success: function (data, status, xhr) {
+                    if (myChart) {
+                        myChart.destroy();
+                    }
+
+                    var chartDim = data.chartDim;
+                    var xLabels = data.labels;
+                    var chartType = data.chartType;
+
+                    var vLabels = [];
+                    var vData = [];
+
+                    if (chartType === 'line') {
+                        // Process data for line chart (Amount Incoming)
+                        for (const [key, values] of Object.entries(chartDim)) {
+                            vLabels.push(key);
+                            let xy = [];
+                            for (let i = 0; i < values.length; i++) {
+                                let d = new Date(values[i][0]);
+                                let year = d.getFullYear();
+                                let month = ('' + (d.getMonth() + 1)).padStart(2, '0');
+                                let day = ('' + d.getDate()).padStart(2, '0');
+                                aDateTime = year + '-' + month + '-' + day;
+                                xy.push({ 'x': aDateTime, 'y': values[i][1] });
+                            }
+                            vData.push(xy);
+                        }
+                    } else if (chartType === 'bar') {
+                        // Process data for bar chart (Bookings By Month)
+                        for (const [key, values] of Object.entries(chartDim)) {
+                            vLabels.push(key);
+                            let xy = [];
+                            for (let i = 0; i < values.length; i++) {
+                                // values[i][0] is already formatted as "January 2022"
+                                // values[i][1] is the count
+                                xy.push({ 'x': values[i][0], 'y': values[i][1] });
+                            }
+                            vData.push(xy);
+                        }
+                    }
+
+                    // Create chart with appropriate type
+                    var chartConfig = {
+                        data: {
+                            datasets: []
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {}
+                        }
+                    };
+
+                    if (chartType === 'line') {
+                        chartConfig.type = 'line';
+                        chartConfig.options.scales = {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    parser: 'yyyy-MM-dd'
+                                    //unit: 'month',
+                                    //displayFormats: {
+                                    //    month: 'MMM yyyy'
+                                    //}
+                                },
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Date'
+                                }
+                            },
+                            y: {
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Amount ($)'
+                                }
+                            }
+                        };
+                    } else if (chartType === 'bar') {
+                        chartConfig.type = 'bar';
+                        chartConfig.options.scales = {
+                            x: {
+                                type: 'category', // Use category scale for bar chart
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Month'
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Number of Bookings'
+                                },
+                                ticks: {
+                                    precision: 0 // No decimal places for booking counts
+                                }
+                            }
+                        };
+                        // Bar-specific options
+                        chartConfig.options.elements = {
+                            bar: {
+                                borderWidth: 1,
+                                // Ensure small bars are visible for zero values
+                                minBarLength: 2 // Minimum pixel height for bars (including zero values)
+                            }
+                        };
+                    }
+
+                    myChart = new Chart(ctx, chartConfig);
+
+                    // Add datasets
+                    for (let i = 0; i < vLabels.length; i++) {
+                        var datasetConfig = {
+                            label: vLabels[i],
+                            data: vData[i],
+                            backgroundColor: '#' + (0x1100000 + Math.random() * 0xffffff).toString(16).substr(1, 6),
+                            borderColor: '#' + (0x1100000 + Math.random() * 0xffffff).toString(16).substr(1, 6),
+                            borderWidth: 1
+                        };
+
+                        if (chartType === 'line') {
+                            datasetConfig.type = "line";
+                            datasetConfig.fill = false;
+                            datasetConfig.spanGaps = true;
+                        } else if (chartType === 'bar') {
+                            datasetConfig.type = "bar";
+                        }
+
+                        myChart.data.datasets.push(datasetConfig);
+                    }
+                    myChart.update();
+                }
+            });
+        }
+    });
+</script>
+
 {% endblock %}
+
