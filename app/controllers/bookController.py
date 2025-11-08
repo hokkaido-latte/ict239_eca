@@ -140,8 +140,22 @@ def check_in():
     
     package_id = request.form.get("package_id")
     bundle_id = request.form.get("bundle_id")
-    # check_in_date = request.form.get("check_in_date")
+    check_in_date_str = request.form.get("check_in_date")
 
+    try:
+        check_in_date = datetime.strptime(check_in_date_str, '%Y-%m-%d').date()
+    except ValueError:
+        flash("Invalid date format. Please use YYYY-MM-DD format", "danger")
+        return redirect(url_for('bookingController.manage_bundle'))
+    bundle = Bundle.objects(id=bundle_id, customer=current_user).first()
+    if not bundle:
+        flash("Bundle not found", "danger")
+        return redirect(url_for('bookingController.manage_bundle'))
+    purchase_date = bundle.purchased_date.date()
+    one_year_later = (bundle.purchased_date + timedelta(days=365)).date()
+    if not (purchase_date <= check_in_date <= one_year_later):
+        flash("Check-in date must be within one year of the bundle purchase date.", "danger")
+        return redirect(url_for('bookingController.manage_bundle'))
     Bundle.checkInBundle(bundle_id, package_id, current_user)
 
     return redirect(url_for('bookingController.manage_bundle'))
