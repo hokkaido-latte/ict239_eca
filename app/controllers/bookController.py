@@ -2,12 +2,11 @@ from flask_login import login_user, login_required, logout_user, current_user
 from flask import Blueprint, request, redirect, render_template, url_for, flash
 
 from models.forms import BookForm
-
 from models.users import User
 from models.package import Package
 from models.book import Booking
-
-from datetime import date, timedelta
+from models.bundle import Bundle
+from datetime import date, timedelta, datetime
 
 booking = Blueprint('bookingController', __name__) # use bookingController.fn
 
@@ -75,3 +74,42 @@ def delete():
     # 2023-03-09 00:00:00 <class 'str'>
     Booking.deleteBooking(check_in_date, current_user, hotel_name)
     return redirect(url_for('bookingController.manageBooking'))
+
+@booking.route('/purchasebundle', methods=['POST'])
+@login_required
+def purchase_bundle():
+    #Bundle.show_all_bundles()
+    if current_user.email == 'admin@abc.com':
+        flash("This is a non-admin function. Please log in as a non-admin user to use this function", "info")
+        return redirect(url_for('packageController.packages'))
+
+    selected = request.form.getlist('selected_packages')
+
+    if not selected:
+        flash("Please select packages to buy as a bundle", "info")
+        return redirect(url_for('packageController.packages'))
+
+    total_cost = 0
+    # bundled_packages = []
+    hotel_names = []
+
+    for hotel_id in selected:
+        package = Package.getPackage(hotel_id)
+        total_cost += package.unit_cost
+        hotel_names.append(package.hotel_name)  # Assuming hotel_name is a field
+
+    discount = 0
+
+    if len(selected) >= 4:
+        discount = 0.20
+    elif len(selected) in [2, 3]:
+        discount = 0.10
+    discounted_total = total_cost * (1 - discount)
+
+    hotel_list_str = ", ".join(hotel_names)
+    if discount == 0:
+        flash(f"No discount for bundle {hotel_list_str} <br>Total cost ${total_cost}", "info")
+    else: 
+        Bundle.createBundle(current_user, [Package.getPackage(hotel_id) for hotel_id in selected])
+        flash(f"{int(discount*100)}% discount for bundle purchase {hotel_list_str} <br>Total cost ${total_cost}<br>Discounted total ${discounted_total}", "info")
+    return redirect(url_for('packageController.packages'))
