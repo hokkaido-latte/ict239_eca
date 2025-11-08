@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
 {% block mainblock %}
+<div class="container mt-5">
     {% if not grouped_bundles %}
     <h2 class="text-left text-muted">No Purchased Bundle</h2>
     {% else %}
+
     <div class="table-responsive">
         <table class="table table-bordered table-striped align-middle mb-5">
             <thead class="table-dark">
@@ -14,18 +16,27 @@
                 </tr>
             </thead>
             <tbody>
+
                 {% for purchase_date, bundles_list in grouped_bundles.items() %}
+                {% set group_rowspan = bundles_list|length %}
                 {% set expiry_date = purchase_date.replace(year=purchase_date.year + 1) %}
-                <tr>
-                    <td>{{ purchase_date.strftime("%Y-%m-%d") }}</td>
-                    <td>
+
+                {% for bundle in bundles_list %}
+                <tr class="{% if not loop.first %}bundle-separator{% endif %}">
+
+                    {% if loop.first %}
+                    <td rowspan="{{ group_rowspan }}">
+                        {{ purchase_date.strftime("%Y-%m-%d") }}
+                    </td>
+                    <td rowspan="{{ group_rowspan }}">
                         <span class="{% if expiry_date < today %}text-danger fw-bold{% else %}text-success{% endif %}">
                             {{ expiry_date.strftime("%Y-%m-%d") }}
                         </span>
                     </td>
+                    {% endif %}
+
                     <td>
-                        {% for bundle in bundles_list %}
-                        <div class="bundle-container py-3" style="border-top: 2px solid #ccc;">
+                        <div class="bundle-container py-3">
                             {% for bp in bundle.bundledpackages %}
                             <div class="package-item d-flex align-items-center gap-3 py-3" style="border-top: 1px dashed #ddd;">
                                 <img src="{{ bp.package.image_url }}" alt="{{ bp.package.hotel_name }}" width="100" class="img-fluid rounded-3" style="object-fit: cover;">
@@ -35,28 +46,31 @@
                                     {% if expiry_date < today %}
                                     <span>Expired</span>
                                     {% else %}
-                                    {# Bundle is NOT expired #}
                                     <div class="mt-2">
                                         {% if bp.utilised %}
                                         <span class="text-muted">Utilised: Yes</span>
                                         {% else %}
-                                        <span class="text-muted">Utilised: Not Yet</span>
-                                        <br>
-                                        <form method="POST" action="/checkin" class="d-flex flex-column flex-md-row align-items-md-center gap-2 mt-2">
-                                            <label for="check_in_date_{{ bp.package.id }}" class="form-label mb-0 me-2">Check-in Date:</label>
-                                            <input type="date"
-                                                   name="check_in_date"
-                                                   id="check_in_date_{{ bp.package.id }}"
-                                                   class="form-control w-auto"
-                                                   required>
+                                        <div class="mt-2 js-utilise-block">
+                                            <span class="text-muted">Utilised: Not Yet</span><br>
 
-                                            <input type="hidden" name="package_id" value="{{ bp.package.id }}">
-                                            <input type="hidden" name="bundle_id" value="{{ bundle.id }}">
+                                            <form class="js-checkin-form d-flex flex-column flex-md-row align-items-md-center gap-2 mt-2"
+                                                  data-package-id="{{ bp.package.id }}"
+                                                  data-bundle-id="{{ bundle.id }}">
 
-                                            <button type="submit" class="btn btn-sm btn-primary">
-                                                Book
-                                            </button>
-                                        </form>
+                                                <label for="check_in_date_{{ bp.package.id }}_{{ bundle.id }}" class="form-label mb-0 me-2">Check-in Date:</label>
+                                                <input type="date"
+                                                       name="check_in_date"
+                                                       id="check_in_date_{{ bp.package.id }}_{{ bundle.id }}"
+                                                       class="form-control w-auto js-checkin-date"
+                                                       required>
+
+                                                <button type="submit" class="btn btn-sm btn-primary js-book-btn">
+                                                    Book
+                                                </button>
+                                            </form>
+
+                                            <div id="feedback-{{ bp.package.id }}-{{ bundle.id }}" class="mt-2" role="alert"></div>
+                                        </div>
                                         {% endif %}
                                     </div>
                                     {% endif %}
@@ -64,13 +78,71 @@
                             </div>
                             {% endfor %}
                         </div>
-                        {% endfor %}
                     </td>
                 </tr>
+                {% endfor %}
                 {% endfor %}
             </tbody>
         </table>
     </div>
+
     {% endif %}
+</div>
+
+<script>
+    document.querySelectorAll('.js-checkin-form').forEach(form => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formElement = e.target;
+            const packageId = formElement.dataset.packageId;
+            const bundleId = formElement.dataset.bundleId;
+            const checkInDate = formElement.querySelector('.js-checkin-date').value;
+            const feedbackElement = document.getElementById(`feedback-${packageId}-${bundleId}`);
+            const bookButton = formElement.querySelector('.js-book-btn');
+
+            if (!checkInDate) {
+                feedbackElement.innerHTML = `<div class="text-danger">Please select a check-in date.</div>`;
+                return;
+            }
+
+            bookButton.disabled = true;
+            bookButton.textContent = 'Booking...';
+            feedbackElement.innerHTML = '';
+
+            try {
+                const response = await fetch('/checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        package_id: packageId,
+                        bundle_id: bundleId,
+                        check_in_date: checkInDate
+                    })
+                });
+
+                if (response.ok) {
+                    // Replace the whole block (span + form) with "Utilised: Yes"
+                    const utiliseBlock = formElement.closest('.js-utilise-block');
+                    utiliseBlock.innerHTML = `<span class="text-muted">Utilised: Yes</span>`;
+                } else {
+                    const errorData = await response.json();
+                    const errorMessage = errorData.error || 'Booking failed due to a server error.';
+                    feedbackElement.innerHTML = `<div class="text-danger">${errorMessage}</div>`;
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                feedbackElement.innerHTML = `<div class="text-danger">A network error occurred.</div>`;
+            } finally {
+                if (feedbackElement.innerHTML.includes('danger')) {
+                    bookButton.disabled = false;
+                    bookButton.textContent = 'Book';
+                }
+            }
+        });
+    });
+</script>
 
 {% endblock %}

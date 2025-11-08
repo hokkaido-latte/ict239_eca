@@ -1,5 +1,5 @@
 from flask_login import login_user, login_required, logout_user, current_user
-from flask import Blueprint, request, redirect, render_template, url_for, flash
+from flask import Blueprint, request, redirect, render_template, url_for, flash, jsonify
 
 from models.forms import BookForm
 from models.users import User
@@ -134,15 +134,36 @@ def manage_bundle():
 @booking.route('/checkin', methods=['POST'])
 @login_required
 def check_in():
+    # 1. Admin Check (Can remain the same, but should return JSON)
     if current_user.email == 'admin@abc.com':
-        flash("This is a non-admin function. Please log in as a non-admin user to use this function", "info")
-        return redirect(url_for('packageController.packages'))
-    
-    package_id = request.form.get("package_id")
-    bundle_id = request.form.get("bundle_id")
-    # check_in_date = request.form.get("check_in_date")
+        # Don't use flash/redirect. Return an error message as JSON.
+        return jsonify({"error": "This is a non-admin function. Please log in as a non-admin user."}), 403 # 403 Forbidden
 
-    Bundle.checkInBundle(bundle_id, package_id, current_user)
+    try:
+        # 2. Receive Data: Read JSON from the request body
+        # The JavaScript Fetch request sends data as JSON.
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request: JSON body expected."}), 400
 
-    return redirect(url_for('bookingController.manage_bundle'))
+        package_id = data.get("package_id")
+        bundle_id = data.get("bundle_id")
+        check_in_date = data.get("check_in_date") # Now capturing the date from JSON
+
+        # Basic input validation
+        if not package_id or not bundle_id or not check_in_date:
+            return jsonify({"error": "Missing package ID, bundle ID, or check-in date."}), 400
+
+        # 3. Business Logic: Pass the check-in date to your model function
+        # NOTE: Your Bundle.checkInBundle function should now accept the date argument.
+        Bundle.checkInBundle(bundle_id, package_id, current_user) 
+        
+        # 4. Return Response: Return a success status as JSON (SPA requirement)
+        # This tells the JavaScript code that the action was successful (response.ok = true).
+        return jsonify({"success": True, "message": "Bundle successfully checked in."}), 200
+
+    except Exception as e:
+        # Handle exceptions during processing or database interaction
+        print(f"Check-in error: {e}")
+        return jsonify({"error": "An unexpected error occurred during check-in."}), 500
 
