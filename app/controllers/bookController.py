@@ -148,15 +148,28 @@ def check_in():
 
         package_id = data.get("package_id")
         bundle_id = data.get("bundle_id")
-        check_in_date = data.get("check_in_date") # Now capturing the date from JSON
+        check_in_date_str = data.get("check_in_date") # Now capturing the date from JSON
 
         # Basic input validation
-        if not package_id or not bundle_id or not check_in_date:
+        if not package_id or not bundle_id or not check_in_date_str:
             return jsonify({"error": "Missing package ID, bundle ID, or check-in date."}), 400
-
+        try:
+            check_in_date = datetime.strptime(check_in_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD."}), 400
         # 3. Business Logic: Pass the check-in date to your model function
         # NOTE: Your Bundle.checkInBundle function should now accept the date argument.
-        Bundle.checkInBundle(bundle_id, package_id, current_user) 
+        bundle = Bundle.objects(id=bundle_id, customer=current_user.id).first()
+        if not bundle:
+            return jsonify({"error": "Bundle not found or you don't have permission to access it."}), 404
+        purchase_date = bundle.purchased_date.date()
+        one_year_later = purchase_date + timedelta(days=365)
+        if not (purchase_date <= check_in_date <= one_year_later):
+            return jsonify({"error": "Check-in date must be within one year of the bundle purchase date."}), 400
+        result = Bundle.checkInBundle(bundle_id, package_id, current_user)
+        if not result:
+            return jsonify({"error": "Failed to check in bundle. Package not found in bundle."}), 400
+
         
         # 4. Return Response: Return a success status as JSON (SPA requirement)
         # This tells the JavaScript code that the action was successful (response.ok = true).
