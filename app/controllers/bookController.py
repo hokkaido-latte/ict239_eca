@@ -7,7 +7,7 @@ from models.package import Package
 from models.book import Booking
 from models.bundle import Bundle
 from datetime import date, timedelta, datetime
-
+from collections import defaultdict
 booking = Blueprint('bookingController', __name__) # use bookingController.fn
 
 @booking.route('/view')
@@ -113,3 +113,36 @@ def purchase_bundle():
         Bundle.createBundle(current_user, [Package.getPackage(hotel_id) for hotel_id in selected])
         flash(f"{int(discount*100)}% discount for bundle purchase {hotel_list_str} <br>Total cost ${total_cost}<br>Discounted total ${discounted_total}", "info")
     return redirect(url_for('packageController.packages'))
+
+@booking.route('/manageBundle')
+@login_required
+def manage_bundle():
+    
+    if current_user.email == 'admin@abc.com':
+        flash("This is a non-admin function. Please log in as a non-admin user to use this function", "info")
+        return redirect(url_for('packageController.packages'))
+    #Bundle.show_all_bundles()
+    bundles=Bundle.get_bundles_by_customer(current_user).order_by('purchased_date')
+    grouped_bundles = defaultdict(list)
+    for bundle in bundles:
+        grouped_bundles[bundle.purchased_date].append(bundle)
+
+    grouped_bundles = dict(sorted(grouped_bundles.items()))
+    #bundles = Bundle.get_all_bundles()
+    return render_template('viewbundles.html', panel='Manage Bundle', grouped_bundles=grouped_bundles, today=datetime.utcnow())
+
+@booking.route('/checkin', methods=['POST'])
+@login_required
+def check_in():
+    if current_user.email == 'admin@abc.com':
+        flash("This is a non-admin function. Please log in as a non-admin user to use this function", "info")
+        return redirect(url_for('packageController.packages'))
+    
+    package_id = request.form.get("package_id")
+    bundle_id = request.form.get("bundle_id")
+    # check_in_date = request.form.get("check_in_date")
+
+    Bundle.checkInBundle(bundle_id, package_id, current_user)
+
+    return redirect(url_for('bookingController.manage_bundle'))
+

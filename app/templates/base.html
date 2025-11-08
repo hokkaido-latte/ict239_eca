@@ -49,29 +49,55 @@
             </div>
             {% endif %}
             <ul class="navbar-nav flex-column mt-4">
-              {% if not current_user.is_authenticated %}
-              <li class="nav-item"><a href="/login" class="nav-link text-white p-3 mb-2 sidebar-link"><i
-                    class="fas fa-home text-light fa-lg mr-3"></i>Login</a></li>
-              <li class="nav-item"><a href="/register" class="nav-link text-white p-3 mb-2 sidebar-link"><i
-                    class="fas fa-user text-light fa-lg mr-3"></i>Register</a></li>
-              {% endif %}
-              <li class="nav-item"><a href="/packages" class="nav-link text-white p-3 mb-2 sidebar-link"><i
-                    class="fas fa-address-card text-light fa-lg mr-3"></i>Packages</a></li>
+                {% if not current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a href="/login" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-home text-light fa-lg mr-3"></i>Login
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/register" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-user text-light fa-lg mr-3"></i>Register
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a href="/packages" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-address-card text-light fa-lg mr-3"></i>Packages
+                    </a>
+                </li>
 
-              {% if current_user.email == "admin@abc.com" %}
-              <li class="nav-item"><a href="/trend_chart" class="nav-link text-white p-3 mb-2 sidebar-link"><i
-                    class="fas fa-chart-area text-light fa-lg mr-3"></i>Dashboard</a></li>
-              <li class="nav-item"><a href="/upload" class="nav-link text-white p-3 mb-2 sidebar-link"><i
-                    class="fas fa-cloud-upload-alt text-light fa-lg mr-3"></i>Upload</a></li>
+                {% if current_user.email == "admin@abc.com" %}
+                <li class="nav-item">
+                    <a href="/trend_chart" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-chart-area text-light fa-lg mr-3"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/upload" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-cloud-upload-alt text-light fa-lg mr-3"></i>Upload
+                    </a>
+                </li>
 
-              {% else %}
-              {% if current_user.is_authenticated %}
-              <li class="nav-item"><a href="/manageBooking" class="nav-link text-white p-3 mb-2 sidebar-link"><i
-                    class="fas fa-calendar text-light fa-lg mr-3"></i>Manage Booking</a></li>
-              <li class="nav-item"><a href="/changeAvatar" class="nav-link text-white p-3 mb-2 sidebar-link"><i
-                    class="fas fa-smile text-light fa-lg mr-3"></i>Change Avatar</a></li>
-              {% endif %}
-              {% endif %}
+                {% else %}
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a href="/manageBooking" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-calendar text-light fa-lg mr-3"></i>Manage Booking
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/manageBundle" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-folder-open text-light fa-lg mr-3"></i>Manage Bundle
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/changeAvatar" class="nav-link text-white p-3 mb-2 sidebar-link">
+                        <i class="fas fa-smile text-light fa-lg mr-3"></i>Change Avatar
+                    </a>
+                </li>
+                {% endif %}
+                {% endif %}
 
             </ul>
           </div>

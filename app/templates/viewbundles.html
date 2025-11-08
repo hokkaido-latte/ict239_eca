@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block mainblock %}
+    {% if not grouped_bundles %}
+    <h2 class="text-left text-muted">No Purchased Bundle</h2>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle mb-5">
+            <thead class="table-dark">
+                <tr>
+                    <th>Purchase Date</th>
+                    <th>Expiry Date</th>
+                    <th>Package Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase_date, bundles_list in grouped_bundles.items() %}
+                {% set expiry_date = purchase_date.replace(year=purchase_date.year + 1) %}
+                <tr>
+                    <td>{{ purchase_date.strftime("%Y-%m-%d") }}</td>
+                    <td>
+                        <span class="{% if expiry_date < today %}text-danger fw-bold{% else %}text-success{% endif %}">
+                            {{ expiry_date.strftime("%Y-%m-%d") }}
+                        </span>
+                    </td>
+                    <td>
+                        {% for bundle in bundles_list %}
+                        <div class="bundle-container py-3" style="border-top: 2px solid #ccc;">
+                            {% for bp in bundle.bundledpackages %}
+                            <div class="package-item d-flex align-items-center gap-3 py-3" style="border-top: 1px dashed #ddd;">
+                                <img src="{{ bp.package.image_url }}" alt="{{ bp.package.hotel_name }}" width="100" class="img-fluid rounded-3" style="object-fit: cover;">
+                                <div class="package-info flex-grow-1">
+                                    <strong>{{ bp.package.hotel_name }}</strong><br>
+
+                                    {% if expiry_date < today %}
+                                    <span>Expired</span>
+                                    {% else %}
+                                    {# Bundle is NOT expired #}
+                                    <div class="mt-2">
+                                        {% if bp.utilised %}
+                                        <span class="text-muted">Utilised: Yes</span>
+                                        {% else %}
+                                        <span class="text-muted">Utilised: Not Yet</span>
+                                        <br>
+                                        <form method="POST" action="/checkin" class="d-flex flex-column flex-md-row align-items-md-center gap-2 mt-2">
+                                            <label for="check_in_date_{{ bp.package.id }}" class="form-label mb-0 me-2">Check-in Date:</label>
+                                            <input type="date"
+                                                   name="check_in_date"
+                                                   id="check_in_date_{{ bp.package.id }}"
+                                                   class="form-control w-auto"
+                                                   required>
+
+                                            <input type="hidden" name="package_id" value="{{ bp.package.id }}">
+                                            <input type="hidden" name="bundle_id" value="{{ bundle.id }}">
+
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                Book
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+{% endblock %}
